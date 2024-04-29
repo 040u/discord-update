@@ -18,8 +18,10 @@ Then start discord again to update it.
 
 This script works by grabbing the version number from the forward link in the HTML code of 
 <br />
-https://discord.com/api/download?platform=linux&format=tar.gz 
-<br />
-<br />
+
+```
+https://discord.com/api/download?platform=linux&format=tar.gz
+```
+
 It then edits your /opt/discord/resources/build_info.json as sudo and kills the "discord" process. Restarting Discord has to be done manually as you should not execute
 Discord as a privileged user.
