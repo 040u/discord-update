@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra
 TARGET = discord-update
-INSTALL_DIR = /bin
+INSTALL_DIR = /usr/bin
 SRCS = main.cpp
 
 all:$(TARGET)
