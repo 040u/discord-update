@@ -1,7 +1,7 @@
 How to install:
 
 ```
-git clone https://github.com/040u/discord-update/new/main
+git clone https://github.com/040u/discord-update
 cd discord-update
 sudo make install
 ```
