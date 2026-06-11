@@ -25,3 +25,7 @@ https://discord.com/api/download?platform=linux&format=tar.gz
 
 It then edits your /opt/discord/resources/build_info.json as sudo and kills the "discord" process. Restarting Discord has to be done manually as you should not execute
 Discord as a privileged user.
+
+<br />
+<br />
+limitations: only works if discord is installed, a /opt/discord/resources/build_info.json exists and a version number is inside of it.
