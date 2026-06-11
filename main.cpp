@@ -2,178 +2,231 @@
 #include <fstream>
 #include <string>
 #include <cstring>
-#include <curl/curl.h>
 #include <regex>
+#include <stdexcept>
 
-//Version 1.1
-//Zusammengeschustert von April Seiffert :3
+#include <curl/curl.h>
 
-struct DownloadData {
+// Version 1.2
+// Zusammengeschustert von April Seiffert :3
 
+struct DownloadData
+{
     std::string html_raw;
-    CURL* curl_handle;
-
 };
 
-size_t WriteCallback(void* ptr, size_t part_size, size_t npart, void* userdata){
+size_t WriteCallback(
+    void* ptr,
+    size_t part_size,
+    size_t npart,
+    void* userdata)
+{
+    auto* data = static_cast<DownloadData*>(userdata);
 
-    DownloadData* data = (DownloadData*)userdata;
-    size_t totalSize = part_size * npart;
+    const size_t total_size = part_size * npart;
 
-    if(data->html_raw.empty()){
+    std::string content(
+        static_cast<char*>(ptr),
+        total_size);
+
+    if (data->html_raw.empty())
+    {
         const char* tag = "<title>";
         const char* end_tag = "</title>";
-        std::string content((char*)ptr, totalSize);
 
         size_t start_pos = content.find(tag);
-        if (start_pos != std::string::npos){
-            start_pos += std::strlen(tag);
-            size_t end_pos = content.find(end_tag, start_pos);
-            if(end_pos != std::string::npos){
-                data -> html_raw = content.substr(start_pos,  - start_pos);
-                std::cout << "Grabbing the raw HTML from https://discord.com/api/download?platform=linux&format=tar.gz" << std::endl;
 
+        if (start_pos != std::string::npos)
+        {
+            start_pos += std::strlen(tag);
+
+            size_t end_pos =
+                content.find(end_tag, start_pos);
+
+            if (end_pos != std::string::npos)
+            {
+                data->html_raw =
+                    content.substr(
+                        start_pos,
+                        end_pos - start_pos);
+
+                std::cout
+                    << "Grabbing raw HTML from Discord..."
+                    << std::endl;
             }
         }
     }
 
-    return totalSize;
-
+    return total_size;
 }
 
-DownloadData curl_download(){
-
-    CURL* curl_handle;
-    CURLcode res;
-    DownloadData redirect_data;
-    std::string html_raw;
-
+DownloadData curl_download()
+{
     curl_global_init(CURL_GLOBAL_ALL);
-    curl_handle = curl_easy_init();
 
-    if(curl_handle){
+    CURL* curl_handle = curl_easy_init();
 
-        const char* url = "https://discord.com/api/download?platform=linux&format=tar.gz";
-
-        redirect_data.curl_handle = curl_handle;
-
-        curl_easy_setopt(curl_handle, CURLOPT_URL, url);
-
-        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteCallback);
-
-        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &html_raw);
-
-        res = curl_easy_perform(curl_handle);
-
-        if (res != CURLE_OK)
-          throw std::runtime_error("curl_easy_perform() failed. Exiting.");
-
-        if (res == CURLE_OK) {
-
-            redirect_data.html_raw = html_raw;
-
-        }
-
-        if (!redirect_data.html_raw.empty()) {
-            std::cout << "Downlaod finished." << std::endl;
-        }
-
-        curl_easy_cleanup(curl_handle);
+    if (!curl_handle)
+    {
         curl_global_cleanup();
-
-        return redirect_data;
-
+        throw std::runtime_error(
+            "Failed to initialize CURL.");
     }
 
-    return redirect_data;
+    DownloadData download_data;
 
+    curl_easy_setopt(
+        curl_handle,
+        CURLOPT_URL,
+        "https://discord.com/api/download?platform=linux&format=tar.gz");
+
+    curl_easy_setopt(
+        curl_handle,
+        CURLOPT_WRITEFUNCTION,
+        WriteCallback);
+
+    curl_easy_setopt(
+        curl_handle,
+        CURLOPT_WRITEDATA,
+        &download_data);
+
+    CURLcode result =
+        curl_easy_perform(curl_handle);
+
+    curl_easy_cleanup(curl_handle);
+    curl_global_cleanup();
+
+    if (result != CURLE_OK)
+    {
+        throw std::runtime_error(
+            std::string("curl_easy_perform() failed: ") +
+            curl_easy_strerror(result));
+    }
+
+    if (!download_data.html_raw.empty())
+    {
+        std::cout
+            << "Download finished."
+            << std::endl;
+    }
+
+    return download_data;
 }
 
-std::string version_cutout(DownloadData download_data){
-
-    std::string version_number = download_data.html_raw;
-
-    std::regex versionRegex("\\d{1,}\\.\\d{1,}\\.\\d{2,}");
+std::string version_cutout(
+    const DownloadData& download_data)
+{
+    static const std::regex version_regex(
+        R"(\d+\.\d+\.\d+)");
 
     std::smatch match;
 
-    if (std::regex_search(version_number, match, versionRegex)){
-
-        std::cout << "Found version number: " << match[0] << std::endl;
+    if (std::regex_search(
+            download_data.html_raw,
+            match,
+            version_regex))
+    {
+        std::cout
+            << "Found version number: "
+            << match[0]
+            << std::endl;
 
         return match[0];
-
     }
 
-    return "";
-
+    throw std::runtime_error(
+        "Could not find version number.");
 }
 
-void version_replace(std::string version_number){
+void version_replace(
+    const std::string& version_number)
+{
+    static const std::regex version_regex(
+        R"(\d+\.\d+\.\d+)");
 
-    std::regex versionRegex("\\d{1,}\\.\\d{1,}\\.\\d{2,}");
-
-    if (!std::regex_match(version_number, versionRegex)){
-    throw std::runtime_error("Invalid version number. exiting");        return;
+    if (!std::regex_match(
+            version_number,
+            version_regex))
+    {
+        throw std::runtime_error(
+            "Invalid version number.");
     }
 
-    std::string filename = "/opt/discord/resources/build_info.json";
+    const std::string filename =
+        "/opt/discord/resources/build_info.json";
 
     std::ifstream file(filename);
 
-    if (!file.is_open()) {
-        throw std::runtime_error("Error while writing to the file: " + filename + "\nAre you sudo? Exiting.");
-        return;
+    if (!file.is_open())
+    {
+        throw std::runtime_error(
+            "Failed to open " +
+            filename +
+            "\nAre you running with sudo?");
     }
 
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
-    content = std::regex_replace(content, versionRegex, version_number);
+    std::string content(
+        (std::istreambuf_iterator<char>(file)),
+        std::istreambuf_iterator<char>());
 
     file.close();
 
+    content = std::regex_replace(
+        content,
+        version_regex,
+        version_number);
+
     std::ofstream outfile(filename);
 
-    if (!outfile.is_open()) {
-        throw std::runtime_error("Error while writing to the file: " + filename + "\nAre you sudo? Exiting.");
-        return;
+    if (!outfile.is_open())
+    {
+        throw std::runtime_error(
+            "Failed to write to " +
+            filename +
+            "\nAre you running with sudo?");
     }
 
     outfile << content;
 
-    outfile.close();
-
-    std::cout << "The verison number " << "in " << filename << " has been successfully changed to " << version_number << std::endl;
-
+    std::cout
+        << "Version number in "
+        << filename
+        << " successfully changed to "
+        << version_number
+        << std::endl;
 }
 
 int main()
 {
+    try
+    {
+        DownloadData download_data =
+            curl_download();
 
-    try {
-
-        DownloadData redirect_data = curl_download();
-
-        std::string version_number = version_cutout(redirect_data);
+        std::string version_number =
+            version_cutout(download_data);
 
         version_replace(version_number);
 
-        std::cout << "(Re)Starting Discord." << std::endl;
+        std::cout
+            << "(Re)Starting Discord."
+            << std::endl;
 
-        system("killall Discord&");
+        std::system("killall Discord");
 
-        std::cout << "Start Discord again to finish the uwupdate." << std::endl;
+        std::cout
+            << "Start Discord again to finish the update."
+            << std::endl;
 
         return 0;
-
     }
-
-    catch (std::exception& e ){
-
-        std::cerr << "\n" << e.what() << std::endl;
+    catch (const std::exception& e)
+    {
+        std::cerr
+            << "\n"
+            << e.what()
+            << std::endl;
 
         return -2;
-
     }
-
 }
