@@ -28,4 +28,6 @@ Discord as a privileged user.
 
 <br />
 <br />
-limitations: only works if discord is installed, a /opt/discord/resources/build_info.json exists and a version number is inside of it.
+limitations:
+<br />
+only works if discord is installed, a /opt/discord/resources/build_info.json exists and a version number is inside of it.
