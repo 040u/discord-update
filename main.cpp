@@ -17,47 +17,18 @@ struct DownloadData
 
 size_t WriteCallback(
     void* ptr,
-    size_t part_size,
-    size_t npart,
+    size_t size,
+    size_t nmemb,
     void* userdata)
 {
     auto* data = static_cast<DownloadData*>(userdata);
 
-    const size_t total_size = part_size * npart;
-
-    std::string content(
+    data->html_raw.append(
         static_cast<char*>(ptr),
-        total_size);
+        size * nmemb
+    );
 
-    if (data->html_raw.empty())
-    {
-        const char* tag = "<title>";
-        const char* end_tag = "</title>";
-
-        size_t start_pos = content.find(tag);
-
-        if (start_pos != std::string::npos)
-        {
-            start_pos += std::strlen(tag);
-
-            size_t end_pos =
-                content.find(end_tag, start_pos);
-
-            if (end_pos != std::string::npos)
-            {
-                data->html_raw =
-                    content.substr(
-                        start_pos,
-                        end_pos - start_pos);
-
-                std::cout
-                    << "Grabbing raw HTML from Discord..."
-                    << std::endl;
-            }
-        }
-    }
-
-    return total_size;
+    return size * nmemb;
 }
 
 DownloadData curl_download()
