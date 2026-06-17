@@ -1,4 +1,4 @@
-How to install:
+## How to install:
 
 ```
 git clone https://github.com/040u/discord-update
@@ -6,7 +6,7 @@ cd discord-update
 sudo make install
 ```
 
-How to use:
+## How to use:
 
 ```
 sudo discord-update
@@ -26,8 +26,6 @@ https://discord.com/api/download?platform=linux&format=tar.gz
 It then edits your /opt/discord/resources/build_info.json as sudo and kills the "discord" process. Restarting Discord has to be done manually as you should not execute
 Discord as a privileged user.
 
-<br />
-<br />
-Limitations:
-<br />
+---
+## Limitations:
 Only works if discord is installed and a /opt/discord/resources/build_info.json exists.
